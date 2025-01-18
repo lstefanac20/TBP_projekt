@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='imgs/favicon.png') }}">
+    <title id="page-title">Žanrovi</title>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="/">
+                <img src="{{ url_for('static', filename='imgs/movies.png') }}" alt="Logo">
+            </a>
+        </div>
+        <nav>
+            <ul id="nav-links">
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h1 id="genre-title"><span id="current-genre"></span></h1>
+            <div class="movie-grid" id="movie-grid">
+            </div>
+            <div id="page-control">
+                <button id="prev-page" disabled>Prethodna stranica</button>
+                <span id="page-info">Stranica <span id="current-page">1</span> od <span id="total-pages">1</span></span>
+                <button id="next-page" disabled>Sljedeća stranica</button>
+            </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 Aplikacija za preporuku filmova</p>
+    </footer>
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+
+        function getCurretnGenre(){
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('genre');
+        }
+
+        async function updateNav() {
+            try{
+                const response = await fetch('session-status');
+                const data = await response.json();
+                const navLinks = document.getElementById('nav-links')
+                const welcomeMsg = document.getElementById('welcome-msg');
+                if(data.isLoggedIn){
+                    navLinks.innerHTML = `
+                    <li><a href="/">Naslovna</a></li>
+                    <li><a href="/profile">Profil</a></li>
+                    <li class = "dropdown">
+                        <a href="#"> Žanrovi </a>
+                        <div class="dropdown-content">
+                            <a href="/genres?genre=Action">Akcija</a>
+                            <a href="/genres?genre=Adventure">Avantura</a>
+                            <a href="/genres?genre=Animation">Animirani</a>
+                            <a href="/genres?genre=Biography">Biografija</a>
+                            <a href="/genres?genre=Comedy">Komedija</a>
+                            <a href="/genres?genre=Crime">Kriminalistički</a>
+                            <a href="/genres?genre=Drama">Drama</a>
+                            <a href="/genres?genre=Family">Obiteljski</a>
+                            <a href="/genres?genre=Fantasy">Fantazija</a>
+                            <a href="/genres?genre=History">Povijesni</a>
+                            <a href="/genres?genre=Horror">Horor</a>
+                            <a href="/genres?genre=Music">Muzika</a>
+                            <a href="/genres?genre=Musical">Mjuzikl</a>
+                            <a href="/genres?genre=Mystery">Misterija</a>
+                            <a href="/genres?genre=Romance">Ljubavni</a>
+                            <a href="/genres?genre=Sci-Fi">Znanstvena fantastika</a>
+                            <a href="/genres?genre=Sport">Sportski</a>
+                            <a href="/genres?genre=Thriller">Triler</a>
+                            <a href="/genres?genre=Western">Vestern</a>
+                        </div>
+                    </li>
+                    <li><a href="#" onclick="logout()">Odjava</a></li>
+                    `;
+                    welcomeMsg.textContent = `Dobrodošli, ${data.name}!`;
+                }else{
+                    navLinks.innerHTML = `
+                        <li><a href="/login">Prijava</a></li>
+                        <li><a href="/signup">Registracija</a></li>
+                    `;
+                    welcomeMsg.textContent = `Dobrodošli!`;
+                }
+            }catch (error){
+                console.error("Greška pri učitavanju", error);
+            }
+        }
+
+        async function loadMoviesGenre(genre, page = 1) {
+            try {
+                const response = await fetch(`/movies/genres?genre=${genre}&page=${page}&limit=20`);
+                const data = await response.json();
+                const movieGrid = document.getElementById('movie-grid');
+                const genreTitle = document.getElementById('current-genre');
+                genreTitle.textContent = genre;
+
+                if (data.status === 'success') {
+                    renderMovies(data.movies);
+                    updatePages(data.page, data.pages, data.movies);
+                } else {
+                    movieGrid.innerHTML = `<p>Nema dostupnih filmova za ovaj žanr</p>`;
+                }
+            } catch (error) {
+                console.error("Greška prilikom učitavanja filmova:", error);
+            }
+        }
+
+        function renderMovies(movies){
+            const movieGrid = document.getElementById('movie-grid');
+            movieGrid.innerHTML = '';
+
+            movies.forEach(movie => {
+                const movieCard = document.createElement('div');
+                movieCard.classList.add('movie-card');
+
+                movieCard.innerHTML = `
+                <img src="${movie.poster_url}" alt="${movie.name}" poster" class="movie-poster">
+                <h3>${movie.name}, (${movie.year})</h3>
+                <p>${movie.genre}</p>
+                <button onclick="viewDetails('${movie._id}')">Detalji</button>
+                `
+                movieGrid.appendChild(movieCard);
+            });
+        }
+
+        function updatePages(current, total, movies){
+            currentPage = current;
+            totalPages = total;
+
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('total-pages').textContent = totalPages;
+
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = currentPage === totalPages;
+
+            if (movies.length < 20 && currentPage === totalPages) {
+                document.getElementById('next-page').disabled = true;
+            }
+        }
+
+        document.getElementById('prev-page').addEventListener('click', () =>{
+            if(currentPage > 1){
+                const genre = getCurretnGenre();
+                loadMoviesGenre(genre, currentPage - 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' }); // Vrati se na vrh
+
+            }
+        });
+
+        document.getElementById('next-page').addEventListener('click', () =>{
+            if(currentPage < totalPages){
+                const genre = getCurretnGenre();
+                loadMoviesGenre(genre, currentPage + 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' }); // Vrati se na vrh
+
+            }
+        });
+
+        async function logout() {
+            try{
+                const response = await fetch('/logout',{
+                    method: 'GET',
+                });
+
+                if(response.ok){
+                    window.location.href = '/';
+                }else{
+                    console.error("Greška kod odjave");
+                }
+            }catch(error){
+                console.error(error);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const genre = getCurretnGenre();
+            if(genre){
+                loadMoviesGenre(genre)
+                document.getElementById('page-title').textContent = `${genre}`;
+            }else {
+                document.getElementById('movie-grid').innerHTML = `<p>Nije odabran ni jedan zanr.</p>`;
+            }
+
+            updateNav();
+        })
+
+        function viewDetails(movieId) {
+            window.location.href = `/movie.html?id=${movieId}`;
+        }
+
+    </script>
+</body>
+</html>

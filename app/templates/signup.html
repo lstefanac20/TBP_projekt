@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='imgs/favicon.png') }}" type="image/x-icon">
+    <title>Registracija</title>
+</head>
+<body>
+    <form action="/signup"  id ="signup-form" method="post"  style="margin-top: 50px; margin-bottom: 30px;">
+        <div>
+            <h1>Registriraj se!</h1>
+            <label for="name">Ime i prezime:</label>
+            <input type="text" id="name" name="name" required>
+            <br><br>
+            <label for="user_name">Korisničko ime:</label>
+            <input type="text" id="user_name" name="user_name" required>
+            <br><br>
+            <label for="name">Email:</label>
+            <input type="email" id="email" name="email" required>
+            <br><br>
+            <label for="name">Lozinka:</label>
+            <input type="password" id="password" name="password" required>
+            <br><br>
+            <fieldset class="genres">
+                <legend>Odaberite svoje omiljene žanrove (odaberite do 5):</legend>
+                <div>
+                <label>
+                    <input type="checkbox" name="genres" value="Action"> Akcija
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Adventure"> Avantura
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Animation"> Animirani
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Biography"> Biografija
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Comedy"> Komedija
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Crime"> Kriminalistički
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Drama"> Drama
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Family"> Obiteljski
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Fantasy"> Fantazija
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="History"> Povijesni
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Horror"> Horror
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Music"> Muzika
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Musical"> Mjuzikli
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Mystery"> Misterija
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Romance"> Ljubavni
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Sci-Fi"> Znanstvena fantastika
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Sport"> Sportski
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Thriller"> Triler
+                </label>
+                <label>
+                    <input type="checkbox" name="genres" value="Western"> Vestern
+                </label>
+                </div>
+            </fieldset>
+            <button type="submit">Registriraj se!</button>
+            <br><br>
+            <p class="prijava">Već imaš račun? <a href="{{ url_for('main.login') }}">Prijavi se!</a></p>
+        </div>
+    </form>
+
+    <div id="popup-modal" class="modal hidden">
+        <div class="modal-content">
+            <p id="popup-message">Poruka</p>
+            <button id="popup-close">OK</button>
+        </div>
+    </div>
+
+<script>
+    const form = document.getElementById('signup-form');
+    const modal = document.getElementById('popup-modal');
+    const message = document.getElementById('popup-message');
+    const closeBtn = document.getElementById('popup-close');
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+
+        const genres = [];
+        document.querySelectorAll('input[name="genres"]:checked').forEach(checkbox =>{
+            genres.push(checkbox.value);
+        })
+
+        const data = {
+            name: formData.get('name'),
+            user_name: formData.get('user_name'),
+            email: formData.get('email'),
+            password: formData.get('password'),
+            genres: genres
+        };
+
+        try {
+            const response = await fetch('/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                message.textContent = result.message;
+                modal.classList.add('show');
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                message.textContent = result.message;
+                modal.classList.add('show');
+                modal.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error(error);
+            message.textContent = "Došlo je do greške!"
+            modal.classList.add('show');
+            modal.classList.remove('hidden');
+        }
+    });
+
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        modal.classList.remove('hidden');
+        window.location.href = '/';
+    });
+</script>
+</body>
+</html>

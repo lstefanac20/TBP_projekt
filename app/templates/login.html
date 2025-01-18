@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prijava</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <form action ="/login" id="login-form" method="post">
+        <div>
+            <h1>Prijavi se!</h1>
+            <label for="user_name_or_email">Email:</label>
+            <input type="text" id="user_name_or_email" name="user_name_or_email" required>
+            <br><br>
+            <label for="password">Lozinka:</label>
+            <input type="password" id="password" name="password" required>
+            <br><br>
+            <button type="submit">Prijavi se!</button>
+            <br><br>
+            <p class="prijava">Nemaš račun? <a href="{{ url_for('main.signup') }}">Registriraj se!</a></p>
+        </div>
+    </form>
+
+    <div id="popup-modal" class="modal hidden">
+        <div class="modal-content">
+            <p id="popup-message">Message goes here</p>
+            <button id="popup-close">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('login-form');
+        const modal = document.getElementById('popup-modal');
+        const message = document.getElementById('popup-message');
+        const closeBtn = document.getElementById('popup-close');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+            const data = {
+                user_name_or_email: formData.get('user_name_or_email'),
+                password: formData.get('password')
+            };
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    message.textContent = result.message;
+                    modal.classList.add('show');
+                    modal.classList.remove('hidden');
+                } else {
+                    message.textContent = result.message;
+                    modal.classList.add('show');
+                    modal.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error(error);
+                message.textContent = "Došlo je do greške!"
+                modal.classList.add('show');
+                modal.classList.remove('hidden');
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+            modal.classList.remove('hidden');
+            window.location.href = '/';
+        });
+    </script>
+</body>
+</html>

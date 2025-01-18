@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='imgs/favicon.png') }}">
+    <title>Aplikacija za preporuku filmova</title>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="/">
+                <img src="{{ url_for('static', filename='imgs/movies.png') }}" alt="Logo">
+            </a>
+        </div>
+        <nav>
+            <ul id="nav-links">
+        </nav>
+    </header>
+    <main>
+        <h1 id="welcome-msg">Dobrodošli!</h1>
+        <h3 id ="preferred-genres"></h3>
+        <p>Filmovi (1980.-2020.)</p>
+        <br><br>
+        <br>
+        <div id="similar-likes-section">
+            <h2 class="recom-title">Korisnicima se još svidjelo</h2>
+            <div id="similar-likes" class="movie-grid"></div>
+        </div>
+        <h2 id="recommended-section" class="recom-title" display="none">Preporučeno za vas</h2>
+        <div class="movie-grid" id="movie-grid">
+        </div>
+        <section id="christmas-recommendations">
+            <h2 class="recom-title">Preporuke za blagdansko raspoloženje</h2>
+            <div class="movie-grid">
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Aplikacija za preporuku filmova</p>
+    </footer>
+
+    <script>
+
+        async function updateNav() {
+            try{
+                const response = await fetch('session-status');
+                const data = await response.json();
+                const navLinks = document.getElementById('nav-links')
+                const welcomeMsg = document.getElementById('welcome-msg');
+                if(data.isLoggedIn){
+                    navLinks.innerHTML = `
+                    <li><a href="/profile">Profil</a></li>
+                    <li class = "dropdown">
+                        <a href="#"> Žanrovi </a>
+                        <div class="dropdown-content">
+                            <a href="/genres?genre=Action">Akcija</a>
+                            <a href="/genres?genre=Adventure">Avantura</a>
+                            <a href="/genres?genre=Animation">Animirani</a>
+                            <a href="/genres?genre=Biography">Biografija</a>
+                            <a href="/genres?genre=Comedy">Komedija</a>
+                            <a href="/genres?genre=Crime">Kriminalistički</a>
+                            <a href="/genres?genre=Drama">Drama</a>
+                            <a href="/genres?genre=Family">Obiteljski</a>
+                            <a href="/genres?genre=Fantasy">Fantazija</a>
+                            <a href="/genres?genre=History">Povijesni</a>
+                            <a href="/genres?genre=Horror">Horor</a>
+                            <a href="/genres?genre=Music">Muzika</a>
+                            <a href="/genres?genre=Musical">Mjuzikl</a>
+                            <a href="/genres?genre=Mystery">Misterija</a>
+                            <a href="/genres?genre=Romance">Ljubavni</a>
+                            <a href="/genres?genre=Sci-Fi">Znanstvena fantastika</a>
+                            <a href="/genres?genre=Sport">Sportski</a>
+                            <a href="/genres?genre=Thriller">Triler</a>
+                            <a href="/genres?genre=Western">Vestern</a>
+                        </div>
+                    </li>
+                    <li><a href="#" onclick="logout()">Odjava</a></li>
+                    `;
+                    welcomeMsg.textContent = `Dobrodošli, ${data.name}!`;
+                }else{
+                    navLinks.innerHTML = `
+                        <li><a href="/login">Prijava</a></li>
+                        <li><a href="/signup">Registracija</a></li>
+                    `;
+                    welcomeMsg.textContent = `Dobrodošli!`;
+                }
+            }catch (error){
+                console.error("Greška povezivanja sa serverom", error);
+            }
+        }
+
+        async function loadRecommendations() {
+            try {
+                const response = await fetch('/recommendations');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    renderMovies(data.movies);
+                    document.getElementById('recommended-section').style.display = 'block'; // Prikaz sekcije
+                } else {
+                    console.error("Greška pri dohvaćanju preporuka:", data.message);
+                }
+            } catch (error) {
+                console.error("Greška povezivanja sa serverom", error);
+            }
+        }
+
+        async function loadPersonalRecommendations() {
+            try {
+                const response = await fetch('/personal-recommendations');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    renderMovies(data.movies);
+                } else {
+                    console.error("Greška pri dohvaćanju preporuka", data.message);
+                }
+            } catch (error) {
+                console.error("Greška povezivanja sa serverom", error);
+            }
+        }
+
+        async function loadPopularMovies() {
+            try {
+                // Provjera je li korisnik prijavljen
+                const sessionResponse = await fetch('/session-status');
+                const sessionData = await sessionResponse.json();
+                console.log("Status korisnika:", sessionData);
+
+                if (sessionData.isLoggedIn) {
+                    console.log("Korisnik je prijavljen. Učitavam personalizirane preporuke...");
+                    await loadRecommendations();
+                } else {
+                    console.log("Korisnik nije prijavljen. Prikazujem popularne filmove...");
+                    const response = await fetch('/movies/popular');
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        renderMovies(data.movies);
+                    } else {
+                        console.error("Greška pri dohvaćanju filmova:", data.message);
+                    }
+                }
+            } catch (error) {
+                console.error("Greška povezivanja sa serverom", error);
+            }
+        }
+
+        async function loadChristmasRecomm() {
+            try {
+                console.log("Pokrenuto dohvaćanje božićnih preporuka");
+                const response = await fetch('/christmas-recommendations');
+                const data = await response.json();
+                console.log("Odgovor s API-ja:", data);
+
+                if (data.status === 'success') {
+                    const movies = data.movies;
+                    console.log("Božićni filmovi:", movies);
+
+                    const christmasGrid = document.querySelector('#christmas-recommendations .movie-grid');
+                    christmasGrid.innerHTML = '';
+
+                    movies.forEach(movie => {
+                        const movieCard = document.createElement('div');
+                        movieCard.classList.add('movie-card');
+
+                        movieCard.innerHTML = `
+                            <img src="${movie.poster_url}" alt="${movie.name}" class="movie-poster">
+                            <h3>${movie.name} (${movie.year})</h3>
+                            <p>Žanr: ${movie.genre}</p>
+                            <p>Ocjena: ${movie.score}</p>
+                            <button onclick="viewDetails('${movie._id}')">Detalji</button>
+                        `;
+                        christmasGrid.appendChild(movieCard);
+                    });
+                } else {
+                    console.error("Nema dostupnih božićnih preporuka.");
+                }
+            } catch (error) {
+                console.error("Greška povezivanja sa serverom", error);
+            }
+        }
+
+        /*korisnicima se jos svidja*/
+        async function fetchSimilarLikes() {
+            try {
+                const sessionResponse = await fetch('/session-status');
+                const sessionData = await sessionResponse.json();
+
+                if (!sessionData.isLoggedIn) {
+                    console.log("Korisnik nije prijavljen - sekcija 'Korisnicima se još sviđa' neće biti prikazana.");
+                    document.getElementById('similar-likes-section').style.display = 'none';
+                    return;
+                }
+
+                const response = await fetch('/movies/similar-likes');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    const similarLikesGrid = document.getElementById('similar-likes');
+                    similarLikesGrid.innerHTML = '';
+
+                    data.movies.forEach(movie => {
+                        const movieCard = document.createElement('div');
+                        movieCard.classList.add('movie-card');
+
+                        movieCard.innerHTML = `
+                            <img src="${movie.poster_url}" alt="${movie.name}" class="movie-poster">
+                            <h3>${movie.name} (${movie.year})</h3>
+                            <p>Žanr: ${movie.genre}</p>
+                            <p>Prosječna ocjena: ${movie.average_score.toFixed(1)}</p>
+                            <button onclick="viewDetails('${movie._id}')">Detalji</button>
+                        `;
+
+                        similarLikesGrid.appendChild(movieCard);
+                    });
+
+                    document.getElementById('similar-likes-section').style.display = 'block'; // Prikaz sekcije
+                } else {
+                    console.error("Greška pri dohvaćanju preporuka:", data.message);
+                }
+            } catch (error) {
+                console.error("Greška povezivanja sa serverom", error);
+            }
+        }
+
+        async function logout() {
+            try{
+                const response = await fetch('/logout',{
+                    method: 'GET',
+                });
+
+                if(response.ok){
+                    window.location.href = '/';
+                }else{
+                    console.error("Greška kod odjave");
+                }
+            }catch(error){
+                console.error(error);
+            }
+        }
+
+        function renderMovies(movies) {
+            console.log("Filmovi za renderiranje:", movies);
+            const movieGrid = document.getElementById('movie-grid');
+            movieGrid.innerHTML = '';
+
+            movies.forEach(movie => {
+                console.log('Renderiranje filma:', movie);
+
+                const movieCard = document.createElement('div');
+                movieCard.classList.add('movie-card');
+
+                movieCard.innerHTML = `
+                    <img src="${movie.poster_url}" alt="${movie.name}" class="movie-poster">
+                    <h3>${movie.name} (${movie.year})</h3>
+                    <p>Žanr: ${movie.genre}</p>
+                    <p>Ocjena: ${movie.score}</p>
+                    <button onclick="viewDetails('${movie._id}')">Detalji</button>
+                `;
+                movieGrid.appendChild(movieCard);
+            });
+        }
+
+
+        function viewDetails(movieId) {
+            if (!movieId) {
+                console.error("ID filma nije specificiran");
+                return;
+            }
+            window.location.href = `/movie.html?id=${movieId}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchSimilarLikes);
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                await updateNav(); // kod prijavljenog korisnika se updatea nav
+
+                const response = await fetch('/session-status');
+                const { isLoggedIn } = await response.json();
+
+                if (isLoggedIn) {
+                    console.log("Korisnik prijavljen - dohvaćanje personaliziranih preporuka.");
+                    await loadRecommendations();
+                } else {
+                    console.log("Korisnik nije prijavljen - prikaz popularnih filmova.");
+                    await loadPopularMovies();
+                }
+
+                await loadChristmasRecomm();
+            } catch (error) {
+                console.error("Greška pri inicijalizaciji:", error);
+            }
+        });
+    </script>
+</body>
+</html>

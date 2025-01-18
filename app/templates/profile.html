@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='imgs/favicon.png') }}">
+    <title>Profil</title>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="/">
+                <img src="{{ url_for('static', filename='imgs/movies.png') }}" alt="Logo">
+            </a>
+        </div>
+        <nav>
+            <ul id="nav-links">
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h1>Profil</h1>
+        <div style="display: flex; flex-direction: column;">
+            <section id="usr-preferences">
+            </section>
+            <section id="watched-movies">
+                <h2>Gledani filmovi</h2>
+                <div id="movie-grid" class="movie-grid">
+                </div>
+        </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Aplikacija za preporuku filmova</p>
+    </footer>
+    <script>
+
+         async function updateNav() {
+            try{
+                const response = await fetch('session-status');
+                const data = await response.json();
+                const navLinks = document.getElementById('nav-links');
+                if(data.isLoggedIn){
+                    navLinks.innerHTML= `
+                        <li><a href="/">Naslovna</a></li>
+                        <li><a href="/profile">Profil</a></li>
+                        <li class = "dropdown">
+                        <a href="#"> Žanrovi </a>
+                        <div class="dropdown-content">
+                            <a href="/genres?genre=Action">Akcija</a>
+                            <a href="/genres?genre=Adventure">Avantura</a>
+                            <a href="/genres?genre=Animation">Animirani</a>
+                            <a href="/genres?genre=Biography">Biografija</a>
+                            <a href="/genres?genre=Comedy">Komedija</a>
+                            <a href="/genres?genre=Crime">Kriminalistički</a>
+                            <a href="/genres?genre=Drama">Drama</a>
+                            <a href="/genres?genre=Family">Obiteljski</a>
+                            <a href="/genres?genre=Fantasy">Fantazija</a>
+                            <a href="/genres?genre=History">Povijesni</a>
+                            <a href="/genres?genre=Horror">Horor</a>
+                            <a href="/genres?genre=Music">Muzika</a>
+                            <a href="/genres?genre=Musical">Mjuzikl</a>
+                            <a href="/genres?genre=Mystery">Misterija</a>
+                            <a href="/genres?genre=Romance">Ljubavni</a>
+                            <a href="/genres?genre=Sci-Fi">Znanstvena fantastika</a>
+                            <a href="/genres?genre=Sport">Sportski</a>
+                            <a href="/genres?genre=Thriller">Triler</a>
+                            <a href="/genres?genre=Western">Vestern</a>
+                        </div>
+                    </li>
+                        <li><a href="#" onclick="logout()">Odjava</a></li>
+                    `;
+                }else{
+                    navLinks.innerHTML = `
+                        <li><a href="/login">Prijava</a></li>
+                        <li><a href="/signup">Registracija</a></li>
+                    `;
+                    welcomeMsg.textContent = `Dobrodošli!`;
+                }
+            }catch(error){
+                console.error(error);
+            }
+        }
+
+        async function loadUsrPreferences() {
+            try {
+                const sessionResponse = await fetch('/session-status');
+                const sessionData = await sessionResponse.json();
+
+                if (sessionData.isLoggedIn && sessionData.userId) {
+                    const response = await fetch(`/user/preferences?user_id=${sessionData.userId}`);
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        renderPreferences(data.genres);
+                    } else {
+                        console.error("Greška:", data.message);
+                    }
+                } else {
+                    console.error("Korisnik nije prijavljen ili nema valjan user_id.");
+                }
+            } catch (error) {
+                console.error("Greška pri dohvaćanju preferencija korisnika:", error);
+            }
+        }
+
+
+        function renderPreferences(genres) {
+            const container = document.getElementById('usr-preferences');
+            container.innerHTML = `<h2>Omiljeni žanrovi:</h2><ul>${genres.map(genre => `<li>${genre}</li>`).join('')}</ul>`;
+        }
+
+
+        function viewDetails(movieId) {
+            if (!movieId) {
+                console.error("ID filma nije specificiran");
+                return;
+            }
+            window.location.href = `/movie.html?id=${movieId}`;
+        }
+
+        async function logout() {
+            try{
+                const response = await fetch('/logout',{
+                    method: 'GET',
+                });
+
+                if(response.ok){
+                    window.location.href = '/';
+                }else{
+                    console.error("Greška kod odjave");
+                }
+            }catch(error){
+                console.error(error);
+            }
+        }
+
+        async function loadWatchedMovies() {
+            try {
+                const sessionResponse = await fetch('/session-status');
+                const sessionData = await sessionResponse.json();
+
+                if (!sessionData.isLoggedIn || !sessionData.userName) {
+                    console.error("Korisnik nije prijavljen.");
+                    alert("Morate biti prijavljeni kako biste vidjeli gledane filmove.");
+                    return;
+                }
+
+                const response = await fetch(`/user/watched-movies?user_name=${sessionData.userName}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    renderWatchedMovies(data.movies);
+                } else {
+                    console.error(data.message);
+                }
+            } catch (error) {
+                console.error("Greška pri dohvaćanju gledanih filmova:", error);
+            }
+        }
+
+        function renderWatchedMovies(movies) {
+            const movieGrid = document.getElementById('movie-grid');
+            movieGrid.innerHTML = '';
+
+            if (movies.length === 0) {
+                movieGrid.innerHTML = '<p>Nema gledanih filmova.</p>';
+                return;
+            }
+
+            movies.forEach(movie => {
+                const movieCard = document.createElement('div');
+                movieCard.classList.add('movie-card');
+
+                movieCard.innerHTML = `
+                    <img src="${movie.poster_url}" alt="${movie.name}" class="movie-poster">
+                    <h3>${movie.name} (${movie.year})</h3>
+                    <p>Žanr: ${movie.genre}</p>
+                    <button onclick="viewDetails('${movie._id}')">Detalji</button>
+                `;
+                movieGrid.appendChild(movieCard);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await updateNav();
+            await loadUsrPreferences();
+            await loadWatchedMovies();
+        });
+    </script>
+</body>
+</html>
